@@ -1,12 +1,5 @@
 from app.database.connection import Base
-from app.model.session import (
-    Customer,
-    Account,
-    Credit,
-    Employment,
-    Loan,
-    Repayment
-)
+from app.model.session import Customer,Account,Credit,Employment,Loan,Repayment
 
 print("Models imported successfully!")
 
