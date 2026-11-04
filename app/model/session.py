@@ -20,7 +20,7 @@ class Customer(Base) :
    address = Column(String(500))
    marital_status = Column(String(30))
    education = Column(String(100))
-   updated_at = Column(DateTime)
+   update_at = Column("update_at",DateTime)
 
    # Relationships
    accounts = relationship("Account", back_populates="customer")
