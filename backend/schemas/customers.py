@@ -11,4 +11,4 @@ class CustomerResponse(BaseModel) :
     email: str | None = None
     phone_number: str | None = None # ตัวแปรนี้สามารถมีค่าเป็นชนิดข้อมูลที่กำหนด หรือไม่มีค่าก็ได้ | None
 
-    model_config = {"from_attributes": True} # ห้ Pydantic อ่านข้อมูลจาก SQLAlchemy Model ได้โดยตรง
+    model_config = {"from_attributes": True} # ให้ Pydantic อ่านข้อมูลจาก SQLAlchemy Model ได้โดยตรง
