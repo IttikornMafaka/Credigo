@@ -1,8 +1,10 @@
 import uuid
 
-from sqlalchemy import (Column,Integer,String,Date,DateTime,Numeric,BigInteger,ForeignKey,Uuid)
+from sqlalchemy import (Column,Integer,String,Date,DateTime,Numeric,BigInteger,ForeignKey,Uuid,func)
 
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship 
+
+from datetime import datetime
 
 from app.database.connection import Base
 
@@ -77,6 +79,8 @@ class Loan(Base) :
     
     customer = relationship("Customer", back_populates="loans")
     repayments = relationship("Repayment", back_populates="loan")
+    
+
     
 class Repayment(Base) : 
     __tablename__ = "repayment_records" 

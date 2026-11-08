@@ -1,12 +1,12 @@
 CREDIGO SYNTHETIC CREDIT DEFAULT DATASET — SUMMARY
 ============================================================
 Records: 10000
-Features: 21
+Features: 14
 Random seed: 20261106
 
 TARGET DISTRIBUTION
-  Non-default (0): 8193  (81.93%)
-  Default     (1): 1807  (18.07%)
+  Non-default (0): 8215  (82.15%)
+  Default     (1): 1785  (17.85%)
 
 MISSING VALUES
   Total: 0
@@ -16,7 +16,6 @@ DUPLICATES
 
 DTYPES
 customer_age                  int64
-gender                          str
 marital_status                  str
 education                       str
 employment_type                 str
@@ -26,63 +25,41 @@ total_account_balance       float64
 total_debt                  float64
 credit_score                  int64
 credit_utilization          float64
-debt_to_income_ratio        float64
 loan_amount                 float64
 loan_term_months              int64
-loan_purpose                    str
-loan_type                       str
 previous_loan_count           int64
 late_payment_count            int64
-max_days_past_due             int64
-previous_default_count        int64
-repayment_ratio             float64
 default_flag                  int64
 
 DESCRIPTIVE STATS (numeric)
-       customer_age  monthly_income  employment_tenure_months  total_account_balance    total_debt  credit_score  credit_utilization  debt_to_income_ratio   loan_amount  loan_term_months  previous_loan_count  late_payment_count  max_days_past_due  previous_default_count  repayment_ratio  default_flag
-count   10000.00000    10000.000000              10000.000000           10000.000000  1.000000e+04  10000.000000        10000.000000          10000.000000  1.000000e+04      10000.000000         10000.000000        10000.000000       10000.000000            10000.000000     10000.000000  10000.000000
-mean       38.26520    27470.030000                 88.924400           35143.980000  1.603878e+05    609.034800           49.055940             29.467707  4.597207e+05         25.884000             2.731400            1.382800          15.279100                0.073800        93.559735      0.180700
-std        10.49304    17051.470261                 78.376507           39203.089215  1.730349e+05    101.830529           21.926221             20.000016  4.639445e+05         14.752936             2.272657            1.889503          28.583567                0.359676         8.551042      0.384789
-min        20.00000     8000.000000                  0.000000            1000.000000  1.000000e+03    300.000000            0.000000              0.170000  1.000000e+04          6.000000             0.000000            0.000000           0.000000                0.000000        37.000000      0.000000
-25%        31.00000    15475.000000                 28.000000           12500.000000  5.300000e+04    541.000000           34.000000             14.287500  1.340000e+05         12.000000             1.000000            0.000000           0.000000                0.000000        89.950000      0.000000
-50%        38.00000    23300.000000                 68.000000           23200.000000  1.060000e+05    610.000000           49.100000             24.910000  2.965000e+05         24.000000             2.000000            1.000000           1.000000                0.000000        95.950000      0.000000
-75%        45.00000    34800.000000                130.000000           42900.000000  2.020000e+05    677.000000           64.200000             40.200000  6.080000e+05         36.000000             4.000000            2.000000          15.000000                0.000000       100.000000      0.000000
-max        70.00000   200000.000000                469.000000          540900.000000  1.912000e+06    900.000000          100.000000             90.000000  2.000000e+06         60.000000            10.000000           13.000000         180.000000                5.000000       100.000000      1.000000
+       customer_age  monthly_income  employment_tenure_months  total_account_balance    total_debt  credit_score  credit_utilization   loan_amount  loan_term_months  previous_loan_count  late_payment_count  default_flag
+count   10000.00000    10000.000000              10000.000000           10000.000000  1.000000e+04  10000.000000        10000.000000  1.000000e+04      10000.000000         10000.000000        10000.000000  10000.000000
+mean       38.26520    27470.030000                 88.924400           35143.980000  1.603878e+05    609.034800           49.055940  4.597207e+05         25.884000             2.731400            1.382800      0.178500
+std        10.49304    17051.470261                 78.376507           39203.089215  1.730349e+05    101.830529           21.926221  4.639445e+05         14.752936             2.272657            1.889503      0.382952
+min        20.00000     8000.000000                  0.000000            1000.000000  1.000000e+03    300.000000            0.000000  1.000000e+04          6.000000             0.000000            0.000000      0.000000
+25%        31.00000    15475.000000                 28.000000           12500.000000  5.300000e+04    541.000000           34.000000  1.340000e+05         12.000000             1.000000            0.000000      0.000000
+50%        38.00000    23300.000000                 68.000000           23200.000000  1.060000e+05    610.000000           49.100000  2.965000e+05         24.000000             2.000000            1.000000      0.000000
+75%        45.00000    34800.000000                130.000000           42900.000000  2.020000e+05    677.000000           64.200000  6.080000e+05         36.000000             4.000000            2.000000      0.000000
+max        70.00000   200000.000000                469.000000          540900.000000  1.912000e+06    900.000000          100.000000  2.000000e+06         60.000000            10.000000           13.000000      1.000000
 
 DEFAULT RATE BY KEY CATEGORY
 
 -- employment_type --
                  count   mean
 employment_type              
-Freelance         1314  0.209
-Full-time         4978  0.160
-Part-time         1010  0.194
-Self-employed     2194  0.172
-Unemployed         504  0.325
+Freelance         1314  0.192
+Full-time         4978  0.166
+Part-time         1010  0.171
+Self-employed     2194  0.175
+Unemployed         504  0.298
 
 -- education --
              count   mean
 education                
-Bachelor      4011  0.190
-Diploma       1726  0.168
-Doctorate      213  0.113
-High School   3013  0.184
-Master        1037  0.170
+Bachelor      4011  0.191
+Diploma       1726  0.165
+Doctorate      213  0.127
+High School   3013  0.178
+Master        1037  0.166
 
 -- loan_purpose --
-                  count   mean
-loan_purpose                  
-Business           2026  0.190
-Education           805  0.193
-Home Improvement   1005  0.178
-Medical             661  0.183
-Personal           3518  0.166
-Vehicle            1985  0.192
-
--- loan_type --
-                count   mean
-loan_type                   
-Auto Loan        1985  0.192
-Business Loan    2026  0.190
-Education Loan    805  0.193
-Personal Loan    5184  0.171

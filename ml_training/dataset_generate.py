@@ -204,67 +204,77 @@ max_days_past_due = np.where(late_payment_count == 0, 0, max_days_past_due)
 # TARGET: default_flag (90+ DPD within 12 months)
 # =========================================================
 unstable_emp = np.isin(
-    employment_type, ["Freelance", "Unemployed", "Part-time"]
+    employment_type,
+    ["Freelance", "Unemployed", "Part-time","Self-employed","Full-time","Contract"]
 ).astype(float)
 
+# Use only variables that will remain in the new feature set
 logit_risk = (
     -0.010 * (credit_score - 600)
-    + 0.020 * (debt_to_income_ratio - 30)
     + 0.012 * (credit_utilization - 50)
     + 0.020 * ((total_debt / monthly_income) - 15)
     + 0.010 * ((loan_amount / monthly_income) - 10)
     + 0.080 * late_payment_count
-    + 0.010 * max_days_past_due
-    + 0.500 * previous_default_count
-    - 0.020 * (repayment_ratio - 80)
     + 0.400 * unstable_emp
     - 0.002 * (employment_tenure_months / 12)
+    - 0.080 * np.log1p(total_account_balance / monthly_income)
 )
-# Irreducible noise — prevents trivially predictable target
-logit_risk = logit_risk + rng.normal(0, 2.0, N)
+
+# Add noise to avoid a deterministic target
+logit_risk += rng.normal(0, 2.0, N)
 
 
 def sigmoid(z):
     return 1.0 / (1.0 + np.exp(-np.clip(z, -50, 50)))
 
 
+# Calibrate average default probability
 lo, hi = -15.0, 15.0
+
 for _ in range(100):
     mid = (lo + hi) / 2
+
     if sigmoid(mid + logit_risk).mean() < TARGET_DEFAULT_RATE:
         lo = mid
     else:
         hi = mid
+
 b0 = (lo + hi) / 2
+
 default_prob = sigmoid(b0 + logit_risk)
+
 default_flag = rng.binomial(1, default_prob)
 
 # =========================================================
 # DATAFRAME
 # =========================================================
 df = pd.DataFrame({
+    # Customer
     "customer_age": customer_age,
-    "gender": gender,
     "marital_status": marital_status,
     "education": education,
+
+    # Employment
     "employment_type": employment_type,
-    "monthly_income": np.round(monthly_income, 2),
+    "monthly_income": monthly_income,
     "employment_tenure_months": employment_tenure_months,
+
+    # Financial
     "total_account_balance": total_account_balance,
     "total_debt": total_debt,
     "credit_score": credit_score,
     "credit_utilization": credit_utilization,
-    "debt_to_income_ratio": debt_to_income_ratio.round(2),
+
+    # Loan
     "loan_amount": loan_amount,
     "loan_term_months": loan_term_months,
-    "loan_purpose": loan_purpose,
-    "loan_type": loan_type,
+
+    # Repayment history
     "previous_loan_count": previous_loan_count,
     "late_payment_count": late_payment_count,
-    "max_days_past_due": max_days_past_due,
-    "previous_default_count": previous_default_count,
-    "repayment_ratio": repayment_ratio.round(2),
-    "default_flag": default_flag,
+
+    # Target
+    "default_flag": default_flag
 })
 
 initial_n = len(df)
