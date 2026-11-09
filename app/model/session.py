@@ -1,11 +1,9 @@
 import uuid
-
 from sqlalchemy import (Column,Integer,String,Date,DateTime,Numeric,BigInteger,ForeignKey,Uuid,func)
-
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship 
-
 from datetime import datetime
-
+from sqlalchemy import Float
 from app.database.connection import Base
 
 
@@ -29,6 +27,7 @@ class Customer(Base) :
    credit_histories = relationship("Credit", back_populates="customer")
    employment_records = relationship("Employment", back_populates="customer")
    loans = relationship("Loan", back_populates="customer")
+   Predict_history = relationship("Predicthistory",back_populates="customer")
 
     
 class Account(Base):
@@ -93,3 +92,24 @@ class Repayment(Base) :
     payment_status = Column(String(30), nullable=False)
     
     loan = relationship("Loan", back_populates="repayments")
+    
+
+class Predicthistory(Base) :
+    __tablename__ = "prediction_history"
+    prediction_id = Column(Uuid(as_uuid=True),primary_key=True,default=uuid.uuid4)
+
+    customer_id = Column(Uuid(as_uuid=True),ForeignKey("customers_detail.customer_id"),nullable=False)
+
+    prediction = Column(Integer, nullable=False)
+    default_probability = Column(Float, nullable=False)
+    risk_score = Column(Float, nullable=False)
+
+    model_version = Column(String(50), nullable=False)
+
+    input_features = Column(JSONB, nullable=False)
+
+    created_at = Column(DateTime(timezone=True),server_default=func.now())
+    
+    # relationship 
+    customer = relationship("Customer",back_populates="Predict_history")
+    

@@ -43,6 +43,7 @@ def normalize_marital_status(value):
         "w": "Widowed",
         "widowed": "Widowed"
     }
+    return mapping.get(value,value)
 
 
 def normalize_education(value):
@@ -208,5 +209,25 @@ def extract_customer_features(
     print("MARITAL:", repr(features["marital_status"]))
     print("EDUCATION:", repr(features["education"]))
     print("EMPLOYMENT:", repr(features["employment_type"]))
+
+    # Validate employment type for Model V1
+    allowed_employment_types = {
+        "Freelance",
+        "Full-time",
+        "Part-time",
+        "Self-employed",
+        "Unemployed"
+    }
+
+    employment_type = features["employment_type"]
+
+    if employment_type is None:
+        raise ValueError("Missing employment type")
+
+    if employment_type not in allowed_employment_types:
+        raise ValueError(
+            f"Unsupported employment type: {employment_type}. "
+            "Manual review required."
+        )
 
     return features
