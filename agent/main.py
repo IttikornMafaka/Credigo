@@ -5,7 +5,9 @@ from agent.graph import graph
 def run_investigation(customer_id: str):
 
     initial_state = {
-        "customer_id": UUID(customer_id)
+        "customer_id": UUID(customer_id),
+        "retry_count": 0,
+        "max_retries": 2
     }
 
     result = graph.invoke(initial_state)

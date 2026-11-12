@@ -78,15 +78,13 @@ def normalize_employment_type(value):
         "part-time": "Part-time",
         "self-employed": "Self-employed",
         "unemployed": "Unemployed",
-        "contract": "Contract"
+        "contract": "Full-time"
     }
 
     return mapping.get(value, value)
 
-def extract_customer_features(
-    db: Session,
-    national_id: str
-):
+def extract_customer_features(db: Session,national_id: str):
+    
     # 1. Find customer
     customer = (
         db.query(Customer)

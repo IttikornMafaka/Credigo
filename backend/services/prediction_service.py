@@ -1,8 +1,9 @@
 
 import joblib
 import pandas as pd
-from sqlalchemy import text
+
 from pathlib import Path
+from math import isfinite
 from sqlalchemy.orm import Session
 
 from backend.services.feature_service import extract_customer_features
@@ -17,9 +18,16 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 MODEL_PATH = BASE_DIR / "ml_training" / "random_forest_model.pkl"
 
+if not MODEL_PATH.exists():
+    raise FileNotFoundError(
+        f"Random Forest model not found: {MODEL_PATH}"
+    )
+
 model = joblib.load(MODEL_PATH)
 
 MODEL_VERSION = "random_forest_v1"
+
+DEFAULT_CLASS = 1
 
 
 # =====================================================
@@ -29,58 +37,94 @@ MODEL_VERSION = "random_forest_v1"
 def predict_credit_risk(db: Session, national_id: str):
 
     try:
-        
-        
-        # ตรวจสอบ Database ที่ FastAPI เชื่อมต่ออยู่
-        result = db.execute(text("""
-            SELECT
-                current_database(),
-                current_schema(),
-                current_user,
-                inet_server_addr(),
-                inet_server_port(),
-                to_regclass('public.prediction_history')
-        """)).fetchone()
 
-        print("FASTAPI DATABASE:", result,flush=True)
-        
+        # 1. Validate Input
+        if not national_id:
+            raise ValueError("National ID is required")
 
-        
-        # 1. Extract customer features
+        # 2. Find Customer
+        customer = (
+            db.query(Customer)
+            .filter(Customer.national_id == national_id)
+            .first()
+        )
+
+        if customer is None:
+            raise ValueError("Customer not found")
+
+        # 3. Extract Customer Features
         features = extract_customer_features(
             db=db,
             national_id=national_id
         )
 
-        # 2. Find customer
-        customer = db.query(Customer).filter(
-            Customer.national_id == national_id
-        ).first()
+        if not features or not isinstance(features, dict):
+            raise ValueError(
+                "Customer features are missing or invalid"
+            )
 
-        if customer is None:
-            raise ValueError("Customer not found")
-
-        # 3. Convert features to DataFrame
+        # 4. Convert Features to DataFrame
         customer_df = pd.DataFrame([features])
 
-        # 4. Random Forest Prediction
+        # 5. Check Model Feature Compatibility
+        if hasattr(model, "feature_names_in_"):
+
+            expected_features = list(model.feature_names_in_)
+
+            missing_features = [
+                feature
+                for feature in expected_features
+                if feature not in customer_df.columns
+            ]
+
+            if missing_features:
+                raise ValueError(
+                    f"Missing model features: {missing_features}"
+                )
+
+            # Ensure feature names and column order
+            # match the training configuration.
+            customer_df = customer_df[expected_features]
+
+        # 6. Check Model Prediction Support
+        if not hasattr(model, "predict_proba"):
+            raise ValueError(
+                "Model does not support probability prediction"
+            )
+
+        # 7. Get Prediction
         prediction = model.predict(customer_df)[0]
 
-        # 5. Calculate default probability
+        # 8. Identify Default Class
         classes = list(model.classes_)
-        default_index = classes.index(1)
 
-        probability = model.predict_proba(customer_df)[0][default_index]
+        if DEFAULT_CLASS not in classes:
+            raise ValueError(
+                f"Default class {DEFAULT_CLASS} "
+                f"not found in model classes: {classes}"
+            )
 
-        # 6. Calculate risk score
+        default_index = classes.index(DEFAULT_CLASS)
+
+        # 9. Calculate Default Probability
+        probabilities = model.predict_proba(customer_df)[0]
+
+        probability = float(probabilities[default_index])
+
+        if not isfinite(probability) or not 0 <= probability <= 1:
+            raise ValueError(
+                "Model returned an invalid default probability"
+            )
+
+        # 10. Calculate Risk Score
         risk_score = probability * 100
 
-        # 7. Save prediction history
+        # 11. Save Prediction History
         history = Predicthistory(
             customer_id=customer.customer_id,
             prediction=int(prediction),
-            default_probability=float(probability),
-            risk_score=float(risk_score),
+            default_probability=probability,
+            risk_score=risk_score,
             model_version=MODEL_VERSION,
             input_features=features
         )
@@ -89,12 +133,12 @@ def predict_credit_risk(db: Session, national_id: str):
         db.commit()
         db.refresh(history)
 
-        # 8. Return result
+        # 12. Return Prediction Result
         return {
             "prediction_id": str(history.prediction_id),
             "prediction": int(prediction),
-            "default_probability": round(float(probability), 4),
-            "risk_score": round(float(risk_score), 2),
+            "default_probability": round(probability, 4),
+            "risk_score": round(risk_score, 2),
             "model_version": MODEL_VERSION,
             "created_at": history.created_at
         }
@@ -102,5 +146,3 @@ def predict_credit_risk(db: Session, national_id: str):
     except Exception:
         db.rollback()
         raise
-    
-    

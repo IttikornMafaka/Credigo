@@ -32,7 +32,7 @@ def validation_data (db:Session,customer_id:UUID) :
         return False 
     
     # Check Customer
-    check(customer.date_of_birth <= date.today(),"CUS001","customers_detail","date_of_birth","Date of birth cannot be in the future") 
+    check(customer.date_of_birth is not None and customer.date_of_birth <= date.today(),"CUS001","customers_detail","date_of_birth","Date of birth is missing or cannot be in the future") 
     
     if customer :
         check(not is_missing(customer.national_id),"CUS002","customers_detail","national_id","National ID is missing")
@@ -42,12 +42,15 @@ def validation_data (db:Session,customer_id:UUID) :
     # Check Account 
     accounts = (db.query(Account).filter(Account.customer_id==customer_id).all())
     for account in accounts : 
-        check(account.balance>= 0,"ACC001","accounts","balance","Account balance is negative")
-        check(account.balance is not None ,"ACC001","accounts","balance","Account balance is missing")
+        check(account.balance is not None,"ACC002","accounts","balance","Account balance is missing")
+        
+        if account.balance is not None:
+            check(account.balance >= 0,"ACC001","accounts","balance","Account balance is negative")
+            
         check(not is_missing(account.account_number),"CUS002","accounts","account_number","Account number is missing")
         check(not is_missing(account.bank_name),"CUS002","accounts","bank_name","Bank name is missing")
         # Check Duplicate account
-        duplicate_account = (db.query(Account.customer_id,Account.account_number).filter(Account.customer_id==Account.account_number).group_by(Account.customer_id,Account.account_number).having(func.count(Account.account_id)>1).all())
+        duplicate_account = (db.query(Account.customer_id,Account.account_number).filter(Account.customer_id==customer_id).group_by(Account.customer_id,Account.account_number).having(func.count(Account.account_id)>1).all())
         for duplicate in duplicate_account :
             check(False,"ACC005","accounts","account_number",f"Duplicate account number found: {duplicate.account_number}")
             
@@ -60,12 +63,12 @@ def validation_data (db:Session,customer_id:UUID) :
         check(not is_missing(loan.loan_status),"LOAN003","loans","loan_term","Loan status missing")
         
         # Check Relationship loan and customer (Referential Integrity Check การตรวจสอบความถูกต้องของความสัมพันธ์ระหว่างตาราง)
-        customer = (db.query(Customer).filter(Customer.customer_id==Loan.loan_id).first())
+        customer = (db.query(Customer).filter(Customer.customer_id==Loan.customer_id).first())
         if customer is None : 
-            check(customer.customer_id==loan.customer_id,"CON002","loans","customer_id","Referenced customer does not exist")
+             check(False,"CON002","loans","customer_id","Referenced customer does not exist")
             
         # Check Bussiness Rule : Application Date
-        check(loan.application_date is not None and loan.application_date.date()<= date.today(),"LOAN005","loans","application_date","Loan application date cannot be in the future")
+        check(loan.application_date is not None and loan.application_date<= date.today(),"LOAN005","loans","application_date","Loan application date cannot be in the future")
         
 
     # Check Repayments
@@ -76,16 +79,17 @@ def validation_data (db:Session,customer_id:UUID) :
         check(repayment.due_date is not None,"REP003","repayment_records","due_date","Due date is missing")
         
         # Check Relationship repayment and loan (Referential Integrity Check การตรวจสอบความถูกต้องของความสัมพันธ์ระหว่างตาราง)
-        loan = (db.query(Loan).filter(Loan.loan_id==repayment.loan_id.first()))
-        if loan is None : 
-            check(loan.customer_id==repayment.customer_id,"CON001","repayment_records","customer_id","Repayment and Loan belong to different customers")
+        loan = (db.query(Loan).filter(Loan.loan_id==repayment.loan_id).first())
+        if loan is None or loan.customer_id != customer_id: 
+            check(False,"CON001","repayment_records","loan_id","Repayment references a missing loan or a loan belonging to another customer")
             
     # Check Employment
     employments = (db.query(Employment).filter(Employment.customer_id==customer_id).all())
     for employment in employments : 
-        check(employment.monthly_income >= 0 , "EMP001","employment_records","monthly_income","Monthly income cannot be negative")
-        check(
-    employment.monthly_income is not None,"EMP002","employment_records","monthly_income","Monthly income is missing")
+        check(employment.monthly_income is not None,"EMP002","employment_records","monthly_income","Monthly income is missing")
+        
+        if employment.monthly_income is not None:
+            check(employment.monthly_income >= 0,"EMP001","employment_records","monthly_income","Monthly income cannot be negative")
         
     # Check Credit History
     credits = (db.query(Credit).filter(Credit.customer_id==customer_id).all())
