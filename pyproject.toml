@@ -30,6 +30,9 @@ dependencies = [
     "sqlalchemy>=2.1.6",
     "uvicorn>=0.54.0",
     "xgboost>=3.2.0",
+    "streamlit>=1.67.0",
+    "requests>=2.34.2",
+    "plotly>=7.1.0",
 ]
 
 [project.scripts]
@@ -38,3 +41,8 @@ credigo = "credigo:main"
 [build-system]
 requires = ["uv_build>=0.12.2,<0.13.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]

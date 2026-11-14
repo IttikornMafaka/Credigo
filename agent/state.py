@@ -36,3 +36,15 @@ class InvestigationState(TypedDict, total=False):
     # 9. Status
     status: str
     error: str
+    
+    # 10. Loan Application
+    application_id : UUID
+    
+    # 11. Policy Assessment
+    policy_assessment : dict[str,Any]
+    
+    # 12. Structured Evidence Context
+    evidence_context : dict[str,Any]
+    
+    # 13. Final Credit Risk Report
+    credit_risk_report : dict[str,Any]

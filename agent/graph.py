@@ -1,7 +1,22 @@
+
 from langgraph.graph import StateGraph, START, END
 
 from agent.state import InvestigationState
-from agent.nodes import retrieve_customer_node,validation_node,prediction_node,policy_retrieval_node,analysis_node,reflection_node , evidence_aggregation_node
+
+from agent.nodes import (
+    retrieve_customer_node,
+    validation_node,
+    prediction_node,
+    policy_retrieval_node,
+    analysis_node,
+    reflection_node,
+    evidence_aggregation_node,
+    policy_assessment_node,
+    evidence_builder_node,
+    credit_risk_report_node,
+    report_validation_node
+)
+
 
 # 1. Routing Functions
 
@@ -50,8 +65,48 @@ def route_after_analysis(state: InvestigationState):
 
 def route_after_reflection(state: InvestigationState):
 
-    if state.get("status") == "reflection_requires_revision":
+    status = state.get("status")
+
+    if status == "reflection_requires_revision":
         return "analysis"
+
+    if status in [
+        "reflection_completed",
+        "reflection_requires_review"
+    ]:
+        return "policy_assessment"
+
+    return "end"
+
+
+def route_after_policy_assessment(state: InvestigationState):
+
+    if state.get("status") != "policy_assessment_completed":
+        return "end"
+
+    return "evidence_builder"
+
+
+def route_after_evidence_builder(state: InvestigationState):
+
+    if state.get("status") != "evidence_context_created":
+        return "end"
+
+    return "credit_risk_report"
+
+
+def route_after_credit_risk_report(state: InvestigationState):
+
+    if state.get("status") != "credit_risk_report_completed":
+        return "end"
+
+    return "report_validation"
+
+
+def route_after_report_validation(state: InvestigationState):
+
+    if state.get("status") == "report_validation_completed":
+        return "end"
 
     return "end"
 
@@ -61,7 +116,7 @@ def route_after_reflection(state: InvestigationState):
 work = StateGraph(InvestigationState)
 
 
-# 3. Register Nodes
+# 3. Register Existing Nodes
 
 work.add_node("retrieve_customer", retrieve_customer_node)
 work.add_node("validation", validation_node)
@@ -72,7 +127,15 @@ work.add_node("analysis", analysis_node)
 work.add_node("reflection", reflection_node)
 
 
-# 4. Define Workflow Edges
+# 4. Register New Credit Risk Nodes
+
+work.add_node("policy_assessment", policy_assessment_node)
+work.add_node("evidence_builder", evidence_builder_node)
+work.add_node("credit_risk_report", credit_risk_report_node)
+work.add_node("report_validation", report_validation_node)
+
+
+# 5. Define Workflow Edges
 
 work.add_edge(START, "retrieve_customer")
 
@@ -117,7 +180,10 @@ work.add_conditional_edges(
 )
 
 
-work.add_edge("evidence_aggregation", "analysis")
+work.add_edge(
+    "evidence_aggregation",
+    "analysis"
+)
 
 
 work.add_conditional_edges(
@@ -130,16 +196,60 @@ work.add_conditional_edges(
 )
 
 
+# Reflection Loop
+
 work.add_conditional_edges(
     "reflection",
     route_after_reflection,
     {
         "analysis": "analysis",
+        "policy_assessment": "policy_assessment",
         "end": END
     }
 )
 
 
-# 5. Compile Graph
+# New Credit Risk Pipeline
+
+work.add_conditional_edges(
+    "policy_assessment",
+    route_after_policy_assessment,
+    {
+        "evidence_builder": "evidence_builder",
+        "end": END
+    }
+)
+
+
+work.add_conditional_edges(
+    "evidence_builder",
+    route_after_evidence_builder,
+    {
+        "credit_risk_report": "credit_risk_report",
+        "end": END
+    }
+)
+
+
+work.add_conditional_edges(
+    "credit_risk_report",
+    route_after_credit_risk_report,
+    {
+        "report_validation": "report_validation",
+        "end": END
+    }
+)
+
+
+work.add_conditional_edges(
+    "report_validation",
+    route_after_report_validation,
+    {
+        "end": END
+    }
+)
+
+
+# 6. Compile Graph
 
 graph = work.compile()

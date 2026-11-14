@@ -2,8 +2,8 @@ from datetime import date, datetime
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-
-from app.model.session import Customer,Account,Credit,Employment,Loan,Repayment
+from uuid import UUID 
+from app.model.session import Customer,Account,Credit,Employment,Loan,Repayment,LoanApplication
 
 def calculate_age(birth_date):
     today = date.today()
@@ -229,3 +229,45 @@ def extract_customer_features(db: Session,national_id: str):
         )
 
     return features
+
+def extract_application_evidence(
+    db: Session,
+    national_id: str,
+    application_id: UUID
+):
+    # 1. Find customer
+    customer = (
+        db.query(Customer)
+        .filter(Customer.national_id == national_id)
+        .first()
+    )
+
+    if not customer:
+        raise ValueError("Customer not found")
+
+    # 2. Find loan application belonging to this customer
+    application = (
+        db.query(LoanApplication)
+        .filter(
+            LoanApplication.application_id == application_id,
+            LoanApplication.customer_id == customer.customer_id
+        )
+        .first()
+    )
+
+    if not application:
+        raise ValueError(
+            "Loan application not found for this customer"
+        )
+
+    # 3. Extract application evidence
+    evidence = {
+        "application_id": application.application_id,
+        "customer_id": customer.customer_id,
+        "requested_amount": application.requested_amount,
+        "requested_term_months": application.requested_term_months,
+        "application_status": application.application_status,
+        "submitted_at": application.submitted_at
+    }
+
+    return evidence

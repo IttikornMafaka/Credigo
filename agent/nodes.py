@@ -5,6 +5,11 @@ from backend.dependence.database import SessionLocal
 from backend.services import customers_service
 from backend.services.prediction_service import predict_credit_risk
 from backend.services.validation_service import validation_data
+from backend.services.policy_service import run_policy_assessment
+from backend.services.evidence_service import build_evidence_context
+from backend.services.llm_service import generate_credit_risk_report
+from backend.services.report_validator import validate_credit_risk_report
+from backend.schemas.credit_risk_report import CreditRiskReport
 from agent.llm import get_llm
 from agent.schemas import ReflectionResult
 import json
@@ -580,3 +585,190 @@ def serialize_documents(retrieve_docs):
     )
 
     return serialized
+
+
+def policy_assessment_node(state: InvestigationState) -> dict:
+
+    print("\n--- POLICY ASSESSMENT NODE ---")
+
+    # 1. Get customer information
+    customer_data = state.get("customer_data")
+
+    if not customer_data:
+        return {
+            "status": "policy_assessment_failed",
+            "error": "Customer data is missing."
+        }
+
+    national_id = customer_data.get("national_id")
+    application_id = state.get("application_id")
+
+    if not national_id or not application_id:
+        return {
+            "status": "policy_assessment_failed",
+            "error": "National ID or Application ID is missing."
+        }
+
+    # 2. Open database session
+    db = SessionLocal()
+
+    try:
+
+        # 3. Run deterministic policy assessment
+        assessment = run_policy_assessment(
+            db=db,
+            national_id=national_id,
+            application_id=application_id
+        )
+
+        print("--- POLICY ASSESSMENT COMPLETED ---")
+
+        return {
+            "policy_assessment": assessment,
+            "status": "policy_assessment_completed"
+        }
+
+    except Exception as e:
+
+        return {
+            "status": "policy_assessment_failed",
+            "error": str(e)
+        }
+
+    finally:
+        db.close()
+        
+        
+def evidence_builder_node(
+    state: InvestigationState
+) -> dict[str, Any]:
+
+    print("\n--- EVIDENCE BUILDER NODE ---")
+
+    # 1. Get policy assessment
+    assessment = state.get("policy_assessment")
+
+    if not assessment:
+        return {
+            "status": "evidence_build_failed",
+            "error": "Policy assessment is missing."
+        }
+
+    try:
+        # 2. Build structured evidence context
+        evidence_context = build_evidence_context(assessment)
+
+        print("--- EVIDENCE CONTEXT CREATED ---")
+
+        # 3. Return result to State
+        return {
+            "evidence_context": evidence_context,
+            "status": "evidence_context_created",
+            "error": ""
+        }
+
+    except Exception as e:
+        return {
+            "status": "evidence_build_failed",
+            "error": str(e)
+        }
+        
+def credit_risk_report_node(
+    state: InvestigationState
+) -> dict[str, Any]:
+
+    print("\n--- CREDIT RISK REPORT NODE ---")
+
+    # 1. Get structured evidence
+    evidence_context = state.get("evidence_context")
+
+    if not evidence_context:
+        return {
+            "credit_risk_report": {},
+            "status": "credit_risk_report_failed",
+            "error": "Evidence context is missing."
+        }
+
+    try:
+        # 2. Generate report using GPT-4.1-mini
+        report = generate_credit_risk_report(
+            evidence_context=evidence_context
+        )
+
+        # 3. Convert Pydantic model to dictionary
+        report_data = report.model_dump(mode="json")
+
+        print("--- CREDIT RISK REPORT COMPLETED ---")
+
+        return {
+            "credit_risk_report": report_data,
+            "status": "credit_risk_report_completed",
+            "error": ""
+        }
+
+    except Exception as e:
+        return {
+            "credit_risk_report": {},
+            "status": "credit_risk_report_failed",
+            "error": str(e)
+        }
+        
+        
+def report_validation_node(
+    state: InvestigationState
+) -> dict[str, Any]:
+
+    print("\n--- REPORT VALIDATION NODE ---")
+
+    # 1. Get LLM report
+    report_data = state.get("credit_risk_report")
+
+    # 2. Get evidence context
+    evidence_context = state.get("evidence_context")
+
+    if not report_data:
+        return {
+            "status": "report_validation_failed",
+            "ai_recommend": "manual_review_required",
+            "error": "Credit risk report is missing."
+        }
+
+    if not evidence_context:
+        return {
+            "status": "report_validation_failed",
+            "ai_recommend": "manual_review_required",
+            "error": "Evidence context is missing."
+        }
+
+    try:
+
+        # 3. Convert dictionary to Pydantic model
+        report = CreditRiskReport.model_validate(report_data)
+
+        # 4. Validate report against actual evidence
+        validated_report = validate_credit_risk_report(
+            report=report,
+            evidence_context=evidence_context
+        )
+
+        # 5. Convert validated report to dictionary
+        final_report = validated_report.model_dump(mode="json")
+
+        print("--- REPORT VALIDATION COMPLETED ---")
+
+        return {
+            "credit_risk_report": final_report,
+            "ai_recommend": validated_report.recommendation,
+            "status": "report_validation_completed",
+            "error": ""
+        }
+
+    except Exception as e:
+
+        print(f"Report Validation Error: {str(e)}")
+
+        return {
+            "ai_recommend": "manual_review_required",
+            "status": "report_validation_failed",
+            "error": str(e)
+        }

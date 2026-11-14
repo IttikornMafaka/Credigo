@@ -28,6 +28,7 @@ class Customer(Base) :
    employment_records = relationship("Employment", back_populates="customer")
    loans = relationship("Loan", back_populates="customer")
    Predict_history = relationship("Predicthistory",back_populates="customer")
+   loan_applications = relationship("LoanApplication",back_populates="customer")
 
     
 class Account(Base):
@@ -79,8 +80,23 @@ class Loan(Base) :
     customer = relationship("Customer", back_populates="loans")
     repayments = relationship("Repayment", back_populates="loan")
     
+class LoanApplication(Base):
+    __tablename__ = "loan_applications"
 
-    
+    application_id = Column(Uuid(as_uuid=True),primary_key=True,default=uuid.uuid4)
+
+    customer_id = Column(Uuid(as_uuid=True),ForeignKey("customers_detail.customer_id"),nullable=False)
+
+    requested_amount = Column(Numeric(15, 2),nullable=False)
+
+    requested_term_months = Column(Integer,nullable=False)
+
+    application_status = Column(String(30),nullable=False,default="Submitted")
+
+    submitted_at = Column(DateTime,nullable=False,server_default=func.now())
+
+    customer = relationship("Customer",back_populates="loan_applications")
+  
 class Repayment(Base) : 
     __tablename__ = "repayment_records" 
     repayment_id = Column(BigInteger,primary_key=True,autoincrement=True)
