@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel , Field
 from uuid import UUID
 from datetime import date
 from decimal import Decimal 
@@ -13,3 +13,16 @@ class Repaymentresponse(BaseModel) :
     payment_status : str 
     
     model_config = {"from_attributes":True}
+    
+    
+class RepaymentCreate(BaseModel):
+    
+    loan_id: int = Field(gt=0)
+
+    payment_amount: Decimal = Field(gt=0)
+
+    due_date: date
+
+    payment_date: date | None = None
+
+    payment_status: str = Field(min_length=1,max_length=30)

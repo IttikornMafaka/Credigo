@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from uuid import UUID
 from decimal import Decimal
 from pydantic import BaseModel, Field, ConfigDict
@@ -25,7 +25,7 @@ class LoanApplicationResponse(BaseModel):
     requested_term_months: int
 
     application_status: str
-    submitted_at: datetime
+    submitted_at: date
 
     model_config = ConfigDict(from_attributes=True)
  
@@ -35,3 +35,12 @@ class LoanApplicationResponse(BaseModel):
 class LoanApplicationStatusUpdate(BaseModel):
 
     application_status: str = Field(min_length=1,max_length=30)
+
+
+class LoanApplicationCreate(BaseModel):
+    
+    requested_amount: Decimal = Field(gt=0)
+
+    requested_term_months: int = Field(gt=0,le=600)
+
+    application_status: str = Field(default="Submitted",min_length=1,max_length=30)

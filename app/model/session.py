@@ -20,7 +20,7 @@ class Customer(Base) :
    address = Column(String(500))
    marital_status = Column(String(30))
    education = Column(String(100))
-   update_at = Column("update_at",DateTime)
+   update_at = Column("update_at",DateTime,nullable=False,server_default=func.now(),onupdate=func.now())
 
    # Relationships
    accounts = relationship("Account", back_populates="customer")
@@ -46,7 +46,7 @@ class Account(Base):
     
 class Credit(Base) : 
     __tablename__ = "credit_history"
-    credit_id = Column(Uuid(as_uuid=True),primary_key=True,default=uuid.uuid4)
+    credit_id = Column(BigInteger, primary_key=True, autoincrement=True)
     customer_id = Column(Uuid(as_uuid=True),ForeignKey("customers_detail.customer_id"),nullable=False)
     credit_score = Column(Integer)
     total_debt = Column(Numeric(15, 2), default=0)
@@ -63,7 +63,7 @@ class Employment(Base) :
     job_title = Column(String(100))
     employment_type = Column(String(50))
     monthly_income = Column(Numeric(15,2))
-    employment_start_date = Column(DateTime)
+    employment_start_date = Column(Date)
     
     customer = relationship("Customer", back_populates="employment_records")
     

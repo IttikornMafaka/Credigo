@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from backend.routers import customer , account ,loan ,repayment , credit_history , employment , validation , prediction ,loan_application , investigation
+from backend.routers import customer , account ,loan ,repayment , credit_history , employment , validation , prediction ,loan_application , investigation , loan
 
 app = FastAPI()
 
