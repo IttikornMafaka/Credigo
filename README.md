@@ -248,8 +248,6 @@ The goal is to build an explainable and structured AI-assisted credit investigat
 
 ## Author
 
-**Ittikorn Supsomboon**
-
-AI Engineering Student
+**IttikornMafaka**
 
 GitHub: https://github.com/IttikornMafaka
